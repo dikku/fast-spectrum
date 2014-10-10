@@ -4,7 +4,7 @@ Complexity O(N M K) (N - length of sinusoid, M - number of compressive measureme
 
 The algorithm is implemented by the "estimateSinusoid" routine which calls "detectNew" to detect new frequencies (from a coarse grid) and "refineExisting" to refine existing frequencies whenever a new frequency is detected (refinement is done on the continuum of frequencies). "estimateSinusoid" assumes that the zero-padded IFFT of the measurement matrix and the IFFT of the derivative manifold are computed upfront (this depends only on the measurement matrix). "preProcessMeasMat" implements the zero-padded IFFT (albeit in an inefficient manner). Can call MATLAB's FFT routine if one desires
 
-"main" puts things together and benchmarks against CRB (note that when SNR is low CRB is not an optimistic estimate of achievable error)
+"main" puts things together and benchmarks against CRB (note that when SNR is low CRB is an optimistic estimate of achievable error)
 
 
 USAGE:
