@@ -26,7 +26,7 @@ y_r = y - S_template*gainEst; % compute the residue
 for iii=1:numStepsFine
     d_omega_MAT = coarse_DER_S_IFFT*diag(gainEst); 
     % look for unexplained component along tangent in the residue
-    omega_jump = (d_omega_MAT'*d_omega_MAT)\real(d_omega_MAT'*y_r);
+    omega_jump = [real(d_omega_MAT);imag(d_omega_MAT)]\[real(y_r);imag(y_r)];
     % use the unexplained part to adjust omegas
     omegaFine = omegaFine + min(omega_jump, maxjump);
     omegaDelta = omegaFine - omegaCoarse;
