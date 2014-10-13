@@ -1,5 +1,10 @@
-function omega_add = detectNew(y_r, omegaCoarse, map_IfftMat)
+function omega_add = detectNew(y_r, sampledManifold)
 
-xcorr    = abs(y_r'*map_IfftMat)./sqrt(sum(abs(map_IfftMat).^2,1));
+% adds a new frequency by correlating the residue with the coarse 
+% templates in sampledManifold.map_IfftMat
+
+xcorr = abs(y_r'*sampledManifold.map_IfftMat)...
+    ./sampledManifold.map_IfftMat_norm_sq;
 [~, which_bin]  = max(xcorr);
-omega_add = omegaCoarse(which_bin);
+
+omega_add = sampledManifold.coarseOmega(which_bin);

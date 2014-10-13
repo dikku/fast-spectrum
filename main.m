@@ -4,10 +4,11 @@ M = 32; % Number of compressive measurements
 type = 'cmplx_bernoulli'; % type of measurement matrix
                           % set to type = 'full' and M = N for
                           % non-compressive
-K = 3; % # sinusoids in the mixture of sinusoids
-SNR = [33 30 30]; % SNR per sinusoid (if all N measurements were made)
-                  % compressive SNR scaled down roughly by a factor of M/N
-                  % if isometries are met
+SNR = [24 21 21]; % SNR per sinusoid with compressive measurements
+K = length(SNR); % # sinusoids in the mixture of sinusoids
+SNR_all_N = SNR + 10*log10(N/M); % SNR per sinusoid 
+                                 % (if all N measurements were made)
+                  
 sigma = 1;
 %% Simulation Setup
 NumSims = 1e4;
@@ -24,13 +25,13 @@ S = generateMeasMat(N,M,type);
 overSamplingRate = 3; % Detection stage
 numStepsFine     = 3; % Refinement phase
 %% Algorithm preprocessing
-[map_IfftMat, map_dIfftMat, coarseOmega] =...
-    preProcessMeasMat(S, antidx, overSamplingRate);
+sampledManifold = preProcessMeasMat(S, antidx, overSamplingRate);
 %% SIMS 
 omega_true = 2*pi*rand(NumSims,K);
 omega_est  = zeros(NumSims,K);
 
-gains_true = sign(randn(NumSims,K) + 1j*randn(NumSims,K))*diag(10.^(SNR/20));
+gains_true = sign(randn(NumSims,K) + 1j*randn(NumSims,K))*...
+    diag(10.^(SNR_all_N/20))*sigma;
 gains_est  = zeros(NumSims,K);
 
 CRB_omega = zeros(NumSims,K);
@@ -50,8 +51,8 @@ parfor sim_count = 1:NumSims
     % take compressive measurements
     y = S*y_full;
     
-    [omegaList, gainList] = estimateSinusoid(y, coarseOmega, map_IfftMat,...
-        map_dIfftMat, K, numStepsFine);
+    [omegaList, gainList] = estimateSinusoid(y, sampledManifold, K,...
+        numStepsFine);
     
     omega_est(sim_count,:) = omegaList(:).';
     gains_est(sim_count,:) = gainList(:).';
@@ -79,14 +80,14 @@ parfor count = 1:NumSims
         repmat(this_omega_est.',[1 K]);
     [this_errors, min_idx] = min(abs(wrap_2pi(all_possible_errors)),[],1);
     
-    % lazy code: this mapping may not always be a permutation, but such
-    % cases will only prop up when two frequencies are very close anyway
+    % This mapping may not always be a permutation, but such
+    % cases will come up when two frequencies are very close
     omega_est_reordered(count,:) = this_omega_est(min_idx); 
     omega_errors(count,:) = this_errors;
     CRB_omega_reorder(count,:) = this_CRB(min_idx);
 end
 
-%%
+%% Plot results
 
 [f_errors,x_errors] = ecdf(omega_errors(:).^2);
 [f_crb,x_crb] = ecdf(CRB_omega_reorder(:));
@@ -94,8 +95,9 @@ end
 figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
 hold on; semilogy(10*log10(x_crb),1-f_crb,'r');
 
-xlabel('Squared error in dB(\omega)','fontsize',14);
-ylabel('CCDF','fontsize',14);
+xlabel('Squared error in dB(\omega)','fontsize',16);
+ylabel('CCDF','fontsize',16);
 
-legend({'Algorithm','Cramer Rao Bound'});
+legend({'Algorithm','Cramer Rao Bound'},'fontsize',16,'location','southwest');
+print('-depsc2','-r300','./Results.eps');
 
