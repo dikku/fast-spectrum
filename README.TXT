@@ -9,20 +9,17 @@ The algorithm is implemented by the "estimateSinusoid" routine which calls "dete
 
 USAGE:
 
-N = length of each sinusoid
-K = number of sinusoids in the mixture
+N = length of your sinusoid
 M = number of compressive measurements
-S = M by N compressive measurement matrix 
-	% (can be eye(N) for normal measurements)
+S = M by N compressive measurement matrix
 y = compressive measurements
 
 % define antenna indexing
 antidx = 1:N; 
 
 % precompute IFFT's upto desired oversampling rate (default is 3)
-sampleManifold = preProcessMeasMat(S, antidx); 
+[map_IfftMat, map_dIfftMat, coarseOmega] = preProcessMeasMat(S, 1:N); 
 
-% arrive at estimates from the measurements y and the sampled 
-% version of the manifold in sampleManifold
+% arrive at estimates from the measurements y and the information about the measurement setup stored in coarseOmega, map_IfftMat, map_dIfftMat
 
-[omegaEst, gainEst] = estimateSinusoid(y, sampleManifold, K);
+[omegaEst, gainEst] = estimateSinusoid(y, coarseOmega, map_IfftMat, map_dIfftMat, K, numStepsFine);
