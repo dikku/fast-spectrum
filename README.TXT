@@ -11,7 +11,7 @@ USAGE:
 
 N = length of your sinusoid
 M = number of compressive measurements
-S = M by N compressive measurement matrix
+S = M by N compressive measurement matrix (can set S=eye(N) for regular measurements)
 y = compressive measurements
 
 % define antenna indexing
