@@ -31,7 +31,7 @@ S = generateMeasMat(N,M,type);
 overSamplingRate = 2; % Detection stage
 numStepsFine     = 3; % Refinement phase
 K_est = K; % #sinusoids to look for
-min_delta_omega_est = (2*pi/N); % minimum separation between 
+min_delta_omega_est = 1.5*(2*pi/N); % minimum separation between 
                                   % two frequencies when we refine
 %% Algorithm preprocessing
 sampledManifold = preProcessMeasMat(S, antidx, overSamplingRate);
