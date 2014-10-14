@@ -14,6 +14,7 @@ K = number of sinusoids in the mixture
 M = number of compressive measurements
 S = M by N compressive measurement matrix 
 	% (can be eye(N) for normal measurements)
+min_sep = minimum separation between sinusoids in the mixture ( e.g., 2*pi/N)
 y = compressive measurements
 
 % define antenna indexing
@@ -25,4 +26,4 @@ sampleManifold = preProcessMeasMat(S, antidx);
 % arrive at estimates from the measurements y and the sampled 
 % version of the manifold in sampleManifold
 
-[omegaEst, gainEst] = estimateSinusoid(y, sampleManifold, K);
+[omegaEst, gainEst] = estimateSinusoid(y, sampleManifold, K, [], min_sep);

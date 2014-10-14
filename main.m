@@ -2,14 +2,14 @@
 wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
 N = 256; % Length of Sinusoid
-M = 32; % Number of compressive measurements
+M = 48; % Number of compressive measurements
 type = 'cmplx_bernoulli'; % type of measurement matrix
                           % set to type = 'full' and M = N for
                           % non-compressive
 
 min_delta_omega = 4*(2*pi/N); % minimum separation between sinusoids
-SNR = 12; % SNR per sinusoid with compressive measurements
-% SNR = [15 12 9];% SNR per sinusoid with compressive measurements
+% SNR = 12; % SNR per sinusoid with compressive measurements
+SNR = [15 12 9];% SNR per sinusoid with compressive measurements
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
 SNR_all_N = SNR + 10*log10(N/M); % SNR per sinusoid 
@@ -30,15 +30,18 @@ S = generateMeasMat(N,M,type);
 %% Algorithm parameters
 overSamplingRate = 2; % Detection stage
 numStepsFine     = 3; % Refinement phase
+K_est = K; % #sinusoids to look for
+min_delta_omega_est = (2*pi/N); % minimum separation between 
+                                  % two frequencies when we refine
 %% Algorithm preprocessing
 sampledManifold = preProcessMeasMat(S, antidx, overSamplingRate);
 %% SIMS 
 omega_true = zeros(NumSims,K);
-omega_est  = zeros(NumSims,K);
+omega_est  = zeros(NumSims,K_est);
 
 gains_true = sigma*sign(randn(NumSims,K) + 1j*randn(NumSims,K))*...
     diag(10.^(SNR_all_N/20));
-gains_est  = zeros(NumSims,K);
+gains_est  =  zeros(NumSims,K_est);
 
 parfor sim_count = 1:NumSims
     
@@ -64,11 +67,17 @@ parfor sim_count = 1:NumSims
     % take compressive measurements
     y = S*y_full;
     
-    [omegaList, gainList] = estimateSinusoid(y, sampledManifold, K,...
-        numStepsFine);
+    [omegaList, gainList] = estimateSinusoid(y, sampledManifold, K_est,...
+        numStepsFine, min_delta_omega_est);
     
-    omega_est(sim_count,:) = omegaList(:).';
-    gains_est(sim_count,:) = gainList(:).';
+    omegaListFull = Inf*ones(K_est,1);
+    omegaListFull(1:length(omegaList)) = omegaList(:);
+    
+    gainListFull = Inf*ones(K_est,1);
+    gainListFull(1:length(gainList)) = gainList(:);
+    
+    omega_est(sim_count,:) = omegaListFull.';
+    gains_est(sim_count,:) = gainListFull.';
     
 end
 
@@ -88,7 +97,7 @@ parfor count = 1:NumSims
     this_CRB = this_CRB((2*K+1):(3*K));
     CRB_omega(count,:) = this_CRB; % we want only freq.
     
-    all_possible_errors = repmat(this_omega_true,[K 1]) - ...
+    all_possible_errors = repmat(this_omega_true,[K_est 1]) - ...
         repmat(this_omega_est.',[1 K]);
     [this_errors, min_idx] = min(abs(wrap_2pi(all_possible_errors)),[],1);
     
@@ -103,7 +112,7 @@ end
 [f_errors,x_errors] = ecdf(omega_errors(:).^2);
 [f_crb,x_crb] = ecdf(CRB_omega(:));
 
-figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
+f1 = figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
 hold on; semilogy(10*log10(x_crb),1-f_crb,'r');
 
 xlabel('Squared frequency estimation error in dB','fontsize',16);
@@ -111,4 +120,27 @@ ylabel('CCDF','fontsize',16);
 
 legend({'Algorithm','Cramer Rao Bound'},'fontsize',16,'location','southwest');
 % print('-depsc2','-r300','./Results.eps');
+
+%% Plot one - by - one
+f2 = figure;
+for count = 1:NumSims
+    this_omega_true = omega_true(count,:);
+    this_omega_est = omega_est(count,:);
+    this_errors = omega_errors(count,:);
+    this_gains_true = gains_true(count,:);
+    this_gains_est = gains_est(count,:);
+    this_CRB = CRB_omega(count,:);
+    
+    if (max(abs(this_errors).^2./this_CRB)) > 20
+        figure(f2);
+        hold off;
+        stem(this_omega_true, abs(this_gains_true),'r-o');
+        hold on;
+        plot(this_omega_est, abs(this_gains_est),'kx');
+        pause(1);
+    end
+end
+close(f2);
+
+
 

@@ -27,4 +27,6 @@ sampledManifold.map_IfftMat_norm_sq = sum(abs(sampledManifold.map_IfftMat).^2,1)
 sampledManifold.map_dIfftMat =...
     S*dIfftMat; % S times dx(omegaCoarse)/d omega
 
+sampledManifold.length = N;
+
 
