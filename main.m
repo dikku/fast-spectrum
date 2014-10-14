@@ -6,8 +6,8 @@ M = 32; % Number of compressive measurements
 type = 'cmplx_bernoulli'; % type of measurement matrix
                           % set to type = 'full' and M = N for
                           % non-compressive
-min_delta_omega = 4*(2*pi/N);
 
+min_delta_omega = 4*(2*pi/N); % minimum separation between sinusoids
 SNR = 12; % SNR per sinusoid with compressive measurements
 % SNR = [15 12 9];% SNR per sinusoid with compressive measurements
 
