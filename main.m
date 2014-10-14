@@ -121,7 +121,7 @@ ylabel('CCDF','fontsize',16);
 legend({'Algorithm','Cramer Rao Bound'},'fontsize',16,'location','southwest');
 % print('-depsc2','-r300','./Results.eps');
 
-%% Plot one - by - one
+%% Plot Large errors one - by - one
 f2 = figure;
 for count = 1:NumSims
     this_omega_true = omega_true(count,:);
