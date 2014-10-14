@@ -3,9 +3,9 @@ if ~exist('overSamplingRate','var'), overSamplingRate = 3;
 elseif isempty(overSamplingRate), overSamplingRate = 3; end
 
 N = length(antidx);
-sinusoid    = @(omega) exp(1j*antidx(:)*omega)/sqrt(N);
+sinusoid    = @(omega) exp(1j*antidx(:)*omega);
 d_sinusoid  = @(omega) 1j*antidx(:)...
-    .*exp(1j*antidx(:)*omega)/sqrt(N);
+    .*exp(1j*antidx(:)*omega);
 
 
 coarseOmega = 2*pi*(0:(N*overSamplingRate-1))/(N*overSamplingRate);
