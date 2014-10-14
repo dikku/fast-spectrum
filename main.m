@@ -34,8 +34,6 @@ gains_true = sign(randn(NumSims,K) + 1j*randn(NumSims,K))*...
     diag(10.^(SNR_all_N/20))*sigma;
 gains_est  = zeros(NumSims,K);
 
-CRB_omega = zeros(NumSims,K);
-
 parfor sim_count = 1:NumSims
     this_gains_true = gains_true(sim_count,:);
     this_omega_true = omega_true(sim_count,:);
@@ -61,8 +59,8 @@ end
 
 %% 
 omega_est_reordered  = zeros(NumSims,K);
-CRB_omega_reorder    = zeros(NumSims,K);
 omega_errors = zeros(NumSims,K);
+CRB_omega = zeros(NumSims,K);
 
 wrap_2pi = @(x) angle(exp(1j*x));
 parfor count = 1:NumSims
@@ -84,18 +82,17 @@ parfor count = 1:NumSims
     % cases will come up when two frequencies are very close
     omega_est_reordered(count,:) = this_omega_est(min_idx); 
     omega_errors(count,:) = this_errors;
-    CRB_omega_reorder(count,:) = this_CRB(min_idx);
 end
 
 %% Plot results
 
 [f_errors,x_errors] = ecdf(omega_errors(:).^2);
-[f_crb,x_crb] = ecdf(CRB_omega_reorder(:));
+[f_crb,x_crb] = ecdf(CRB_omega(:));
 
 figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
 hold on; semilogy(10*log10(x_crb),1-f_crb,'r');
 
-xlabel('Squared error in dB(\omega)','fontsize',16);
+xlabel('Squared frequency estimation error in dB','fontsize',16);
 ylabel('CCDF','fontsize',16);
 
 legend({'Algorithm','Cramer Rao Bound'},'fontsize',16,'location','southwest');

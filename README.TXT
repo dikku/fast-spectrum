@@ -19,7 +19,7 @@ y = compressive measurements
 % define antenna indexing
 antidx = 1:N; 
 
-% precompute IFFT's upto desired oversampling rate (default is 3)
+% precompute IFFTs upto desired oversampling rate (default is 3)
 sampleManifold = preProcessMeasMat(S, antidx); 
 
 % arrive at estimates from the measurements y and the sampled 
