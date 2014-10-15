@@ -17,7 +17,7 @@ S = M by N compressive measurement matrix
 min_sep = minimum separation between sinusoids in the mixture ( e.g., 1.5*2*pi/N)
 y = compressive measurements
 
-% define antenna indexing
+% define starting phase of a unit real gain sinusoid
 antidx = 1:N; 
 
 % precompute IFFTs upto desired oversampling rate (default is 3)
