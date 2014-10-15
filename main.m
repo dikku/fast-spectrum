@@ -7,7 +7,7 @@ type = 'cmplx_bernoulli'; % type of measurement matrix
                           % set to type = 'full' and M = N for
                           % non-compressive
 
-min_delta_omega = 4*(2*pi/N); % minimum separation between sinusoids
+min_delta_omega = 2*(2*pi/N); % minimum separation between sinusoids
 % SNR = 12; % SNR per sinusoid with compressive measurements
 SNR = [15 12 9];% SNR per sinusoid with compressive measurements
 
@@ -17,7 +17,7 @@ SNR_all_N = SNR + 10*log10(N/M); % SNR per sinusoid
                   
 sigma = 10^(-min(SNR_all_N/20));
 %% Simulation Setup
-NumSims = 1e4;
+NumSims = 2e4;
 
 antidx = 1:N; % notion of starting phase
 
@@ -119,6 +119,8 @@ xlabel('Squared frequency estimation error in dB','fontsize',16);
 ylabel('CCDF','fontsize',16);
 
 legend({'Algorithm','Cramer Rao Bound'},'fontsize',16,'location','southwest');
+title(sprintf('Minimum separation: %.1f times DFT\nEffective per measurement SNR: %s dB',...
+    min_delta_omega/(2*pi/N), sprintf('%.0f ', SNR)));
 % print('-depsc2','-r300','./Results.eps');
 
 %% Plot Large errors one - by - one
@@ -141,6 +143,3 @@ for count = 1:NumSims
     end
 end
 close(f2);
-
-
-
