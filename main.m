@@ -29,7 +29,7 @@ sinusoid    = @(omega) exp(1j*antidx(:)*omega);
 S = generateMeasMat(N,M,type);
 %% Algorithm parameters
 overSamplingRate = 2; % Detection stage
-numStepsFine     = 3; % Refinement phase
+numStepsFine     = 2; % Refinement phase
 K_est = K; % #sinusoids to look for
 min_delta_omega_est = 1.5*(2*pi/N); % minimum separation between 
                                   % two frequencies when we refine

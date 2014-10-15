@@ -6,14 +6,18 @@ N = length(antidx);
 sinusoid    = @(omega) exp(1j*antidx(:)*omega);
 d_sinusoid  = @(omega) 1j*antidx(:)...
     .*exp(1j*antidx(:)*omega);
+% d2_sinusoid  = @(omega) -(antidx(:).^2)...
+%     .*exp(1j*antidx(:)*omega);
 
 
 coarseOmega = 2*pi*(0:(N*overSamplingRate-1))/(N*overSamplingRate);
-IfftMat  = zeros(N,N*overSamplingRate);
-dIfftMat = zeros(N,N*overSamplingRate);
+IfftMat   = zeros(N,N*overSamplingRate);
+dIfftMat  = zeros(N,N*overSamplingRate);
+% d2IfftMat = zeros(N,N*overSamplingRate);
 for count = 1:(N*overSamplingRate)
-    IfftMat(:,count)     = sinusoid(coarseOmega(count));
-    dIfftMat(:,count)     = d_sinusoid(coarseOmega(count));
+    IfftMat(:,count)   = sinusoid(coarseOmega(count));
+    dIfftMat(:,count)  = d_sinusoid(coarseOmega(count));
+    % d2IfftMat(:,count) = d2_sinusoid(coarseOmega(count));
 end
 
 % Fourier transform of sensing matrix for the coarse stage 
@@ -25,7 +29,11 @@ sampledManifold.map_IfftMat =...
 sampledManifold.map_IfftMat_norm_sq = sum(abs(sampledManifold.map_IfftMat).^2,1); 
                                     % norm square of S times x(omegaCoarse)
 sampledManifold.map_dIfftMat =...
-    S*dIfftMat; % S times dx(omegaCoarse)/d omega
+    S*dIfftMat; % S times dx(omegaCoarse)/d omega (1st der)
+
+% needed if we use block-Newton updates
+% sampledManifold.map_d2IfftMat =...
+%     S*d2IfftMat; % S times d^2x(omegaCoarse)/d omega^2 (2nd der)
 
 sampledManifold.length = N;
 
