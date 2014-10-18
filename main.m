@@ -1,15 +1,15 @@
 %% Distance between phases and freq
 wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
-N = 256; % Length of Sinusoid
-M = 48; % Number of compressive measurements
+N = 1024; % Length of Sinusoid
+M = 100; % Number of compressive measurements
 type = 'cmplx_bernoulli'; % type of measurement matrix
                           % set to type = 'full' and M = N for
                           % non-compressive
 
 min_delta_omega = 2*(2*pi/N); % minimum separation between sinusoids
 % SNR = 12; % SNR per sinusoid with compressive measurements
-SNR = [15 12 9];% SNR per sinusoid with compressive measurements
+SNR = [9 9 9 9];% SNR per sinusoid with compressive measurements
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
 SNR_all_N = SNR + 10*log10(N/M); % SNR per sinusoid 
@@ -19,12 +19,10 @@ sigma = 10^(-min(SNR_all_N/20));
 %% Simulation Setup
 NumSims = 2e4;
 
-antidx = 1:N; % notion of starting phase
-
 % definition of sinusoid
-sinusoid    = @(omega) exp(1j*antidx(:)*omega);
-% d_sinusoid  = @(omega) 1j*antidx(:)...
-%     .*exp(1j*antidx(:)*omega);
+sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega);
+% d_sinusoid  = @(omega) 1j*(0:(N-1))'...
+%     .*exp(1j*(0:(N-1))'*omega);
 
 S = generateMeasMat(N,M,type);
 %% Algorithm parameters
@@ -34,7 +32,7 @@ K_est = K; % #sinusoids to look for
 min_delta_omega_est = 1.5*(2*pi/N); % minimum separation between 
                                   % two frequencies when we refine
 %% Algorithm preprocessing
-sampledManifold = preProcessMeasMat(S, antidx, overSamplingRate);
+sampledManifold = preProcessMeasMat(S, N, overSamplingRate);
 %% SIMS 
 omega_true = zeros(NumSims,K);
 omega_est  = zeros(NumSims,K_est);
@@ -87,12 +85,13 @@ omega_errors = zeros(NumSims,K);
 CRB_omega = zeros(NumSims,K);
 
 parfor count = 1:NumSims
+    
     this_omega_true = omega_true(count,:);
     this_gains_true = gains_true(count,:);
     this_omega_est = omega_est(count,:);
     
     % estimate CRB indirectly from all N measurements
-    [CRB_mat, ~] = CRBAllN(this_gains_true, this_omega_true, antidx, sigma);
+    [CRB_mat, ~] = CRBAllN(this_gains_true, this_omega_true, N, sigma);
     this_CRB = diag(CRB_mat)*N/M; % scale CRB for compressive measurements
     this_CRB = this_CRB((2*K+1):(3*K));
     CRB_omega(count,:) = this_CRB; % we want only freq.

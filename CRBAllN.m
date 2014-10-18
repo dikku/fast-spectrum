@@ -1,11 +1,11 @@
-function [CRB_mat, FIM_mat] = CRBAllN(gainList, omegaList, antidx, sigma)
+function [CRB_mat, FIM_mat] = CRBAllN(gainList, omegaList, N, sigma)
 % OUTPUT CRB matrix ordered as (gains(1:K), phases(1:K), frequencies(1:K))
 
 K = length(gainList);
-N = length(antidx);
-sinusoid    = @(omega) exp(1j*antidx(:)*omega)/sqrt(N);
-d_sinusoid  = @(omega) 1j*antidx(:)...
-    .*exp(1j*antidx(:)*omega)/sqrt(N);
+ant_idx = 0:(N-1);
+sinusoid    = @(omega) exp(1j*ant_idx(:)*omega)/sqrt(N);
+d_sinusoid  = @(omega) 1j*ant_idx(:)...
+    .*exp(1j*ant_idx(:)*omega)/sqrt(N);
 
 FIM_plane_matrix = [];
 
