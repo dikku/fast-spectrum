@@ -27,8 +27,8 @@ The zero-padded IFFT (unit norm version) of the rows of the measurement matrix a
 USAGE
 =====
 
-Detection
----------
+(i) Estimation / Cold start O(N M K)
+------------------------------------
 
 N = length of each sinusoid
 K = number of sinusoids in the mixture
@@ -43,9 +43,20 @@ y = S*[mixture of sinusoids + noise]
 % y is compressive measurements
 
 % precompute IFFTs upto desired oversampling rate (default is 3)
+% one time operation
 sampleManifold = preProcessMeasMat(S, N); 
 
 % arrive at estimates from the measurements y and the sampled 
 % version of the manifold in sampleManifold
 
 [omegaEst, gainEst] = estimateSinusoid(y, sampleManifold, K, [], MIN_SEP);
+
+(ii) Tracking / Warm start O(M K^2) 
+-----------------------------------
+
+% precompute IFFTs upto desired oversampling rate (default is 3)
+% one time operation
+sampleManifold = preProcessMeasMat(S, N); 
+
+[omegaRefined, gainRefined, measurements_residue] = refineExisting(measurements, omegaCurrentEstimate, sampledManifold);
+
