@@ -20,7 +20,7 @@ Overview
 
 The algorithm is implemented by the "estimateSinusoid" routine which calls "detectNew" to detect new frequencies (from a coarse grid) and "refineExisting" to refine existing frequencies whenever a new frequency is detected (refinement is done on the continuum of frequencies). "pruneExisting" removes frequencies which come too close to one another and replaces them with their average (merge operation) 
 
-The zero-padded IFFT (unit norm version) of the rows of the measurement matrix and the IFFT of the derivative manifold of the IDFT of the rows of the measurement matrix are passed as inputs to "estimateSinusoid". "preProcessMeasMat" implements the zero-padded IFFT (albeit in an inefficient manner). Can call MATLAB's IFFT routine if one desires to speed up the operation (IFFT means antidx = 0:(N-1))
+The zero-padded IFFT (unit norm version) of the rows of the measurement matrix and the IFFT of the derivative manifold of the IDFT of the rows of the measurement matrix are passed as inputs to "estimateSinusoid". "preProcessMeasMat" implements the zero-padded IFFT (albeit in an inefficient manner). Can call MATLAB's IFFT routine if one desires to speed up the operation
 
 "main" puts things together and benchmarks against CRB (note that when SNR is low CRB is an optimistic estimate of achievable error) ("CRBAllN" computes the CRB)
 
