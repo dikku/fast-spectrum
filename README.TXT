@@ -1,5 +1,6 @@
 An efficient sequential algorithm to accurately estimate *continuous* frequencies/tones present in a *mixture* of sinusoids
 
+
 Complexity 
 ==========
 
@@ -8,10 +9,10 @@ K - number of tones in the mixture
 M = O(K log N) - number of compressive measurements
 
 (i) Estimation / Cold start O(N M K)
-------------------------------------
+-------------------------------------
 
 (ii) Tracking / Warm start O(M K^2) 
------------------------------------
+------------------------------------
 
 
 Overview
@@ -27,36 +28,40 @@ The zero-padded IFFT (unit norm version) of the rows of the measurement matrix a
 USAGE
 =====
 
-(i) Estimation / Cold start O(N M K)
-------------------------------------
-
 N = length of each sinusoid
 K = number of sinusoids in the mixture
 M = number of compressive measurements
 S = M by N compressive measurement matrix 
 	(can be eye(N) for normal measurements)
-MIN_SEP = minimum separation between sinusoids as the algorithm progresses (e.g., 1.5*2*pi/N). 
-
-We merge two sinusoids closer than this into a single sinusoid. Should be smaller than we expect in the "truth" 
-
-y = S*[mixture of sinusoids + noise] 
 % y is compressive measurements
+y = S*[mixture of sinusoids + noise] or S*[mixture of sinusoids] + noise
 
-% precompute IFFTs upto desired oversampling rate (default is 3)
-% one time operation
-sampleManifold = preProcessMeasMat(S, N); 
+% precompute IFFTs upto desired 
+% oversampling rate (default is 3) 
+sampledManifold = preProcessMeasMat(S, N); 
+
+
+(i) Estimation / Cold start O(N M K)
+------------------------------------
+
+MIN_SEP = minimum separation between sinusoids 
+		  as the algorithm progresses (e.g., 1.5*2*pi/N). 
+
+% We merge two sinusoids closer than MIN_SEP in 
+% frequency into a single sinusoid
+% MIN_SEP Should be smaller than the frequency separation 
+% among frequencies in the "truth" 
+
+
 
 % arrive at estimates from the measurements y and the sampled 
 % version of the manifold in sampleManifold
 
-[omegaEst, gainEst] = estimateSinusoid(y, sampleManifold, K, [], MIN_SEP);
+[omegaEst, gainEst] = estimateSinusoid(y, sampledManifold, K, [], MIN_SEP);
 
 (ii) Tracking / Warm start O(M K^2) 
 -----------------------------------
 
-% precompute IFFTs upto desired oversampling rate (default is 3)
-% one time operation
-sampleManifold = preProcessMeasMat(S, N); 
+omegaPastEstimate = An approximate estimate of the frequencies of the K sinusoids in y; for example from the past time-step (tracking)
 
-[omegaRefined, gainRefined, measurements_residue] = refineExisting(measurements, omegaCurrentEstimate, sampledManifold);
-
+[omegaRefined, gainRefined, y_residue] = refineExisting(y, omegaPastEstimate, sampledManifold);
