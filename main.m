@@ -1,33 +1,35 @@
 %% Distance between phases and freq
 wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
-N = 1024; % Length of Sinusoid
-M = 100; % Number of compressive measurements
+N = 256; % Length of Sinusoid
+M = 64; % Number of compressive measurements
 type = 'cmplx_bernoulli'; % type of measurement matrix
                           % set to type = 'full' and M = N for
                           % non-compressive
 
 min_delta_omega = 2*(2*pi/N); % minimum separation between sinusoids
-% SNR = 12; % SNR per sinusoid with compressive measurements
-SNR = [9 9 9 9];% SNR per sinusoid with compressive measurements
+
+% effective SNR per measurement with compressive 
+% measurements for the K sinusoids in the mixture
+% SNR = 12; 
+SNR = [24 21 21 21];
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
-SNR_all_N = SNR + 10*log10(N/M); % SNR per sinusoid 
-                                 % (if all N measurements were made)
+SNR_all_N = SNR + 10*log10(N/M); % actual SNR per measurement
                   
 sigma = 10^(-min(SNR_all_N/20));
 %% Simulation Setup
 NumSims = 2e4;
 
 % definition of sinusoid
-sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega);
+sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega)/sqrt(N);
 % d_sinusoid  = @(omega) 1j*(0:(N-1))'...
-%     .*exp(1j*(0:(N-1))'*omega);
+%     .*exp(1j*(0:(N-1))'*omega)/sqrt(N);
 
 S = generateMeasMat(N,M,type);
 %% Algorithm parameters
-overSamplingRate = 2; % Detection stage
-numStepsFine     = 2; % Refinement phase
+overSamplingRate = 4; % Detection stage
+numStepsFine     = 6; % Refinement phase
 K_est = K; % #sinusoids to look for
 min_delta_omega_est = 1.5*(2*pi/N); % minimum separation between 
                                   % two frequencies when we refine
@@ -79,7 +81,8 @@ parfor sim_count = 1:NumSims
     
 end
 
-%% 
+%% COMPUTE ESTIMATION ERRORS AND BENCHMARK AGAINST CRAMER RAO BOUND
+
 omega_est_reordered  = zeros(NumSims,K);
 omega_errors = zeros(NumSims,K);
 CRB_omega = zeros(NumSims,K);
@@ -108,7 +111,7 @@ end
 
 %% Plot results
 
-[f_errors,x_errors] = ecdf(omega_errors(:).^2);
+[f_errors,x_errors] = ecdf(abs(omega_errors(:)).^2);
 [f_crb,x_crb] = ecdf(CRB_omega(:));
 
 f1 = figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
@@ -122,7 +125,8 @@ title(sprintf('Minimum separation: %.1f times DFT\nEffective per measurement SNR
     min_delta_omega/(2*pi/N), sprintf('%.0f ', SNR)));
 % print('-depsc2','-r300','./Results.eps');
 
-%% Plot Large errors one - by - one
+%% DEBUG PLOT: Displays large error scenarios case by case
+
 f2 = figure;
 for count = 1:NumSims
     this_omega_true = omega_true(count,:);
@@ -132,7 +136,7 @@ for count = 1:NumSims
     this_gains_est = gains_est(count,:);
     this_CRB = CRB_omega(count,:);
     
-    if (max(abs(this_errors).^2./this_CRB)) > 20
+    if (max(abs(this_errors).^2./this_CRB)) > 100
         figure(f2);
         hold off;
         stem(this_omega_true, abs(this_gains_true),'r-o');

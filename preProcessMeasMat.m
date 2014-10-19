@@ -7,13 +7,14 @@ sampledManifold.length = N;
 R = round(overSamplingRate*N);
 ant_idx = 0:(N-1);
 
-%% INEFFICIENT CODE LEFT FOR READABILITY (IF ant_idx is different from 0:(N-1))
+%% INEFFICIENT CODE 
+%  INTERPRETATION OF IFFT OPERATION
 
-% sinusoid    = @(omega) exp(1j*ant_idx(:)*omega);
+% sinusoid    = @(omega) exp(1j*ant_idx(:)*omega)/sqrt(N);
 % d_sinusoid  = @(omega) 1j*ant_idx(:)...
-%     .*exp(1j*ant_idx(:)*omega);
+%     .*exp(1j*ant_idx(:)*omega)/sqrt(N);
 % % d2_sinusoid  = @(omega) -(freq_order(:).^2)...
-%     % .*exp(1j*antidx(:)*omega);
+%     % .*exp(1j*antidx(:)*omega)/sqrt(N);
 % 
 % coarseOmega = 2*pi*(0:(R-1))/(R);
 % IfftMat   = zeros(N,R);
@@ -35,10 +36,10 @@ ant_idx = 0:(N-1);
 % sampledManifold.map_dIfftMat =...
 %     S*dIfftMat; % S times dx(omegaCoarse)/d omega (1st der)
 % 
-% % needed if we use block-Newton updates
+% % needed when we use block-Newton updates
 % % sampledManifold.map_d2IfftMat =...
 % %     S*d2IfftMat; 
-%       % S times d^2x(omegaCoarse)/d omega^2 (2nd der)
+% %     % S times d^2x(omegaCoarse)/d omega^2 (2nd der)
 
 
 
@@ -50,18 +51,20 @@ ant_idx = 0:(N-1);
 % SCALING OF IFFTs assumes that sinusoid(omega) takes the following form 
 % sinusoid    = @(omega) exp(1j*(0:(N-1)).'*omega);
 
- sampledManifold.coarseOmega = 2*pi*(0:(R-1))/R; 
-                               % ordering of frequencies in IFFT definition
- sampledManifold.map_IfftMat = sqrt(R*N)*ifft(S,R,2); 
-                               % S times x(omegaCoarse)
+ sampledManifold.coarseOmega = 2*pi*(0:(R-1))/R;  % omegaCoarse
+                         % ordering of frequencies in IFFT's definition
+ sampledManifold.map_IfftMat = R/sqrt(N)*ifft(S,R,2); 
+                           % S times x(omegaCoarse)
 
  sampledManifold.map_IfftMat_norm_sq = ...
      sum(abs(sampledManifold.map_IfftMat).^2,1);
       % norm square of S times x(omegaCoarse)
- sampledManifold.map_dIfftMat = sqrt(R*N)*...
+ sampledManifold.map_dIfftMat = R/sqrt(N)*...
      ifft(S*sparse(1:N,1:N,1j*ant_idx),R,2); 
      % S times dx(omegaCoarse)/d omega (1st der)
      
-%  sampledManifold.map_d2IfftMat = sqrt(R*N)*...
-%      ifft(S*sparse(1:N,1:N,-ant_idx.^2),R,2);
+% % needed when we use block-Newton updates
+% sampledManifold.map_d2IfftMat = R/sqrt(N)*...
+%     ifft(S*sparse(1:N,1:N,-ant_idx.^2),R,2);
+%     % S times d^2x(omegaCoarse)/d omega^2 (2nd der)
 
