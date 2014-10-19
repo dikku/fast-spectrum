@@ -5,6 +5,8 @@ function [omegaFine, gainEst, y_r] = refineExisting(y, omegaFine,...
 % S*dx(omega_coarse)/domega stored in sampledManifold
 %  This is done via linearization of the manifold
 
+% Complexity O(M K^2)
+
 if ~exist('maxjump','var'), maxjump = Inf;
 elseif isempty(maxjump), maxjump = Inf; end
 
@@ -23,7 +25,7 @@ coarse_DER_S_IFFT = sampledManifold.map_dIfftMat(:,BIN_IDX);
 % linearized version of the sinusoidal manifold around the coarse estimate
 % tangent plane
 S_template = coarse_S_IFFT + coarse_DER_S_IFFT*diag(omegaDelta);
-gainEst = S_template\y;
+gainEst = (S_template'*S_template)\(S_template'*y);
 y_r = y - S_template*gainEst; % compute the residue
 
 for iii=1:numStepsFine
@@ -41,7 +43,7 @@ for iii=1:numStepsFine
         real(DER_S_IFFT_times_gain'*y_r);
     
     % use the unexplained part to adjust omegas
-    omegaFine = omegaFine + min(omega_jump, maxjump);
+    omegaFine = omegaFine + max(min(omega_jump, maxjump),-maxjump);
     omegaDelta = omegaFine - omegaCoarse;
     
     % change coarse estimate pivots if we cross boundaries when refining
@@ -57,6 +59,6 @@ for iii=1:numStepsFine
     
     % new template, corresponding gains and residues
     S_template = coarse_S_IFFT + coarse_DER_S_IFFT*diag(omegaDelta);
-    gainEst = S_template\y;
+    gainEst = (S_template'*S_template)\(S_template'*y);
     y_r = y - S_template*gainEst;
 end

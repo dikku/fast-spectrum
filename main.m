@@ -12,14 +12,14 @@ min_delta_omega = 2*(2*pi/N); % minimum separation between sinusoids
 % effective SNR per measurement with compressive 
 % measurements for the K sinusoids in the mixture
 % SNR = 12; 
-SNR = [24 21 21 21];
+SNR = [21 21 21 21];
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
 SNR_all_N = SNR + 10*log10(N/M); % actual SNR per measurement
                   
 sigma = 10^(-min(SNR_all_N/20));
 %% Simulation Setup
-NumSims = 2e4;
+NumSims = 1e4;
 
 % definition of sinusoid
 sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega)/sqrt(N);
@@ -28,8 +28,8 @@ sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega)/sqrt(N);
 
 S = generateMeasMat(N,M,type);
 %% Algorithm parameters
-overSamplingRate = 4; % Detection stage
-numStepsFine     = 6; % Refinement phase
+overSamplingRate = 3; % Detection stage
+numStepsFine     = 3; % Refinement phase
 K_est = K; % #sinusoids to look for
 min_delta_omega_est = 1.5*(2*pi/N); % minimum separation between 
                                   % two frequencies when we refine
@@ -69,6 +69,8 @@ parfor sim_count = 1:NumSims
     
     [omegaList, gainList] = estimateSinusoid(y, sampledManifold, K_est,...
         numStepsFine, min_delta_omega_est);
+    
+    % [omegaList, gainList, ~] = polishExisting(y, omegaList, S)
     
     omegaListFull = Inf*ones(K_est,1);
     omegaListFull(1:length(omegaList)) = omegaList(:);
