@@ -52,15 +52,13 @@ for iter = 1:max_iter
     [omegaList, change] = pruneExisting(omegaList, min_sep);
     while change
         
-        % if change = true -- we need to refine again as omegaList has been
-        % pruned
-        if change
-            [omegaList, gainList, y_r] = refineExisting(y, omegaList,...
-                sampledManifold, numStepsFine);
-        end
+        % we need to refine again as omegaList has been pruned
+        [omegaList, gainList, y_r] = refineExisting(y, omegaList,...
+            sampledManifold, numStepsFine);
         
         % check again whether two frequencies have come too close
         [omegaList, change] = pruneExisting(omegaList, min_sep);
+        
     end
     
     % when we detect K frequencies we stop
