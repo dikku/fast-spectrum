@@ -7,6 +7,10 @@ function [omegaFine, gainEst, y_r] = refineExisting(y, omegaFine,...
 
 % Complexity O(M K^2)
 
+% Distance between phases and freq
+wrap_2pi = @(x) angle(exp(1j*x));
+
+
 if ~exist('maxjump','var'), maxjump = Inf;
 elseif isempty(maxjump), maxjump = Inf; end
 
@@ -17,7 +21,7 @@ delta_bin = 2*pi/length(sampledManifold.coarseOmega);
 [~,BIN_IDX] = min(abs((repmat(sampledManifold.coarseOmega(:),[1 K]) -...
     repmat(omegaFine(:),[1 length(sampledManifold.coarseOmega)])')),[],1);
 omegaCoarse = sampledManifold.coarseOmega(BIN_IDX)';
-omegaDelta = omegaFine - omegaCoarse;
+omegaDelta = wrap_2pi(omegaFine - omegaCoarse);
 coarse_S_IFFT = sampledManifold.map_IfftMat(:,BIN_IDX);
 coarse_DER_S_IFFT = sampledManifold.map_dIfftMat(:,BIN_IDX);
 % coarse_DER2_S_IFFT = sampledManifold.map_d2IfftMat(:,BIN_IDX);
@@ -44,14 +48,14 @@ for iii=1:numStepsFine
     
     % use the unexplained part to adjust omegas
     omegaFine = omegaFine + max(min(omega_jump, maxjump),-maxjump);
-    omegaDelta = omegaFine - omegaCoarse;
+    omegaDelta = wrap_2pi(omegaFine - omegaCoarse);
     
     % change coarse estimate pivots if we cross boundaries when refining
     if any(abs(omegaDelta) > (delta_bin/2))
         [~,BIN_IDX] = min(abs((repmat(sampledManifold.coarseOmega(:),[1 K]) -...
             repmat(omegaFine(:),[1 length(sampledManifold.coarseOmega)])')),[],1);
         omegaCoarse = sampledManifold.coarseOmega(BIN_IDX)';
-        omegaDelta = omegaFine - omegaCoarse;
+        omegaDelta = wrap_2pi(omegaFine - omegaCoarse);
         coarse_S_IFFT = sampledManifold.map_IfftMat(:,BIN_IDX);
         coarse_DER_S_IFFT = sampledManifold.map_dIfftMat(:,BIN_IDX);
         % coarse_DER2_S_IFFT = sampledManifold.map_d2IfftMat(:,BIN_IDX);

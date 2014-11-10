@@ -2,8 +2,8 @@
 wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
 N = 256; % Length of Sinusoid
-M = 64; % Number of compressive measurements
-type = 'cmplx_bernoulli'; % type of measurement matrix
+M = 256; % Number of compressive measurements
+type = 'full'; % type of measurement matrix
                           % set to type = 'full' and M = N for
                           % non-compressive
 
@@ -12,7 +12,8 @@ min_delta_omega = 2*(2*pi/N); % minimum separation between sinusoids
 % effective SNR per measurement with compressive 
 % measurements for the K sinusoids in the mixture
 % SNR = 12; 
-SNR = [21 21 21 21];
+K = 7;
+SNR = 36 * ones(1,K);
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
 SNR_all_N = SNR + 10*log10(N/M); % actual SNR per measurement
@@ -28,8 +29,8 @@ sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega)/sqrt(N);
 
 S = generateMeasMat(N,M,type);
 %% Algorithm parameters
-overSamplingRate = 3; % Detection stage
-numStepsFine     = 3; % Refinement phase
+overSamplingRate = 4; % Detection stage
+numStepsFine     = 12; % Refinement phase
 K_est = K; % #sinusoids to look for
 min_delta_omega_est = 1.5*(2*pi/N); % minimum separation between 
                                   % two frequencies when we refine
@@ -38,6 +39,7 @@ sampledManifold = preProcessMeasMat(S, N, overSamplingRate);
 %% SIMS 
 omega_true = zeros(NumSims,K);
 omega_est  = zeros(NumSims,K_est);
+residue = zeros(NumSims,1);
 
 gains_true = sigma*sign(randn(NumSims,K) + 1j*randn(NumSims,K))*...
     diag(10.^(SNR_all_N/20));
@@ -46,14 +48,15 @@ gains_est  =  zeros(NumSims,K_est);
 parfor sim_count = 1:NumSims
     
     this_gains_true = gains_true(sim_count,:);
-    
     this_omega_true = 2*pi*rand(1,1);
+    
     while length(this_omega_true) < K
         temp = 2*pi*rand(1,1);
         if min(abs(wrap_2pi(this_omega_true-temp))) > min_delta_omega
             this_omega_true = [this_omega_true temp];
         end
     end
+    
     omega_true(sim_count,:) = this_omega_true;
     
     % add measurement noise
@@ -68,9 +71,14 @@ parfor sim_count = 1:NumSims
     y = S*y_full;
     
     [omegaList, gainList] = estimateSinusoid(y, sampledManifold, K_est,...
-        numStepsFine, min_delta_omega_est);
+       numStepsFine, min_delta_omega_est);
     
-    % [omegaList, gainList, ~] = polishExisting(y, omegaList, S)
+    % [omegaList, gainList, ~] = polishExisting(y, omegaList, S,...
+    %     numStepsFine)
+    
+    [omegaList, gainList, y_r] = refineExisting(y, omegaList,...
+        sampledManifold, 0);
+    residue(sim_count) = y_r'*y_r;
     
     omegaListFull = Inf*ones(K_est,1);
     omegaListFull(1:length(omegaList)) = omegaList(:);
@@ -118,18 +126,26 @@ end
 
 f1 = figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
 hold on; semilogy(10*log10(x_crb),1-f_crb,'r');
+semilogy(20*log10(pi/N*[1 1]),[1/NumSims 1],'b');
 
 xlabel('Squared frequency estimation error in dB','fontsize',16);
 ylabel('CCDF','fontsize',16);
 
-legend({'Algorithm','Cramer Rao Bound'},'fontsize',16,'location','southwest');
+legend({'Squared Error','Cramer Rao Bound','\pi/N'},'fontsize',16,'location','southwest');
 title(sprintf('Minimum separation: %.1f times DFT\nEffective per measurement SNR: %s dB',...
     min_delta_omega/(2*pi/N), sprintf('%.0f ', SNR)));
 % print('-depsc2','-r300','./Results.eps');
 
+[f_res,x_res] = ecdf(residue/(M-K_est)/sigma^2);
+% [f_res,x_res] = ecdf(residue/M/sigma^2);
+f2 = figure; semilogy(x_res, 1-f_res);
+xlabel('Residue relative to noise level');
+ylabel('CCDF');
+
 %% DEBUG PLOT: Displays large error scenarios case by case
 
-f2 = figure;
+f3 = figure;
+count_err = 0;
 for count = 1:NumSims
     this_omega_true = omega_true(count,:);
     this_omega_est = omega_est(count,:);
@@ -138,13 +154,16 @@ for count = 1:NumSims
     this_gains_est = gains_est(count,:);
     this_CRB = CRB_omega(count,:);
     
-    if (max(abs(this_errors).^2./this_CRB)) > 100
-        figure(f2);
+    if (max(abs(this_errors).^2)/max(this_CRB)) > 100
+        % (max(abs(this_errors).^2./this_CRB)) > 100
+        figure(f3);
         hold off;
         stem(this_omega_true, abs(this_gains_true),'r-o');
         hold on;
         plot(this_omega_est, abs(this_gains_est),'kx');
         pause(1);
+        count_err = count_err + 1;
     end
 end
-close(f2);
+disp(count_err);
+close(f3);
