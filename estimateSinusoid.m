@@ -25,8 +25,8 @@ elseif isempty(numStepsFine), numStepsFine = 4; end
 
 N = sampledManifold.length;
 
-if ~exist('min_sep','var'), min_sep = pi/N;
-elseif isempty(min_sep), min_sep = pi/N; end
+if ~exist('min_sep','var'), min_sep = 0;
+elseif isempty(min_sep), min_sep = 0; end
 
 % initialization
 y_r = y; % residue
@@ -39,26 +39,18 @@ max_iter = 3*K; % stop adding and deleting frequencies when number of
 for iter = 1:max_iter
     
     % coarse stage
-    omega_add = detectNew(y_r, sampledManifold);
+    [omega_add, gain_add, y_r] = detectNew(y_r, sampledManifold);
     
     omegaList = [omegaList; omega_add];
-    gainList  = [gainList; 0]; % just a place holder 
+    gainList  = [gainList; gain_add]; % just a place holder 
     
-    % fine stage
-    [omegaList, gainList, y_r] = refineExisting(y, omegaList,...
-        sampledManifold, numStepsFine);
-    
-    % check whether two frequencies have come too close
-    [omegaList, change] = pruneExisting(omegaList, min_sep);
-    while change
-        
-        % we need to refine again as omegaList has been pruned
-        [omegaList, gainList, y_r] = refineExisting(y, omegaList,...
-            sampledManifold, numStepsFine);
-        
-        % check again whether two frequencies have come too close
+    if min_sep > 0
+        % check whether two frequencies have come too close
         [omegaList, change] = pruneExisting(omegaList, min_sep);
-        
+        while change
+            % check again whether two frequencies have come too close
+            [omegaList, change] = pruneExisting(omegaList, min_sep);
+        end
     end
     
     % when we detect K frequencies we stop
@@ -66,3 +58,7 @@ for iter = 1:max_iter
         break;
     end
 end
+
+% fine stage
+[omegaList, gainList, y_r] = refineExisting(y, omegaList,...
+    sampledManifold, numStepsFine);
