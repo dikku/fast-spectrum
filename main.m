@@ -2,8 +2,8 @@
 wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
 N = 256; % Length of Sinusoid
-M = 256; % Number of compressive measurements
-type = 'full'; % type of measurement matrix
+M = 64; % Number of compressive measurements
+type = 'cmplx_bernoulli'; % type of measurement matrix
                           % set to type = 'full' and M = N for
                           % non-compressive
 
@@ -12,8 +12,8 @@ min_delta_omega = 2*(2*pi/N); % minimum separation between sinusoids
 % effective SNR per measurement with compressive 
 % measurements for the K sinusoids in the mixture
 % SNR = 12; 
-K = 7;
-SNR = 36 * ones(1,K);
+K = 5;
+SNR = 27 * ones(1,K);
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
 SNR_all_N = SNR + 10*log10(N/M); % actual SNR per measurement
@@ -29,11 +29,9 @@ sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega)/sqrt(N);
 
 S = generateMeasMat(N,M,type);
 %% Algorithm parameters
-overSamplingRate = 4; % Detection stage
+overSamplingRate = 2; % Detection stage
 numStepsFine     = 12; % Refinement phase
 K_est = K; % #sinusoids to look for
-min_delta_omega_est = 1.5*(2*pi/N); % minimum separation between 
-                                  % two frequencies when we refine
 %% Algorithm preprocessing
 sampledManifold = preProcessMeasMat(S, N, overSamplingRate);
 %% SIMS 
@@ -48,6 +46,7 @@ gains_est  =  zeros(NumSims,K_est);
 parfor sim_count = 1:NumSims
     
     this_gains_true = gains_true(sim_count,:);
+    
     this_omega_true = 2*pi*rand(1,1);
     
     while length(this_omega_true) < K
@@ -70,14 +69,12 @@ parfor sim_count = 1:NumSims
     % take compressive measurements
     y = S*y_full;
     
-    [omegaList, gainList] = estimateSinusoid(y, sampledManifold, K_est,...
-       numStepsFine, min_delta_omega_est);
+    [omegaList, gainList, y_r] = estimateSinusoid(y, sampledManifold, K_est,...
+       numStepsFine);
     
-    % [omegaList, gainList, ~] = polishExisting(y, omegaList, S,...
-    %     numStepsFine)
-    
-    [omegaList, gainList, y_r] = refineExisting(y, omegaList,...
-        sampledManifold, 0);
+    % [omegaList, gainList, y_r] = polishExisting(y, omegaList, S,...
+    %     numStepsFine);
+
     residue(sim_count) = y_r'*y_r;
     
     omegaListFull = Inf*ones(K_est,1);
@@ -161,7 +158,7 @@ for count = 1:NumSims
         stem(this_omega_true, abs(this_gains_true),'r-o');
         hold on;
         plot(this_omega_est, abs(this_gains_est),'kx');
-        pause(1);
+        % pause(1);
         count_err = count_err + 1;
     end
 end
