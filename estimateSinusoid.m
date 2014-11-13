@@ -17,7 +17,7 @@ function [omegaList, gainList, y_r] = estimateSinusoid(y, sampledManifold, K, ..
 %            default - 4
 % (v)    min_sep (optional) - we will merge two sinusoids that are closer
 %              than this in frequency
-%            default - pi/N
+%            default - 0
 
 
 if ~exist('numStepsFine','var'), numStepsFine = 4;
@@ -36,6 +36,8 @@ gainList = [];
 max_iter = 3*K; % stop adding and deleting frequencies when number of 
                 % iterations exceeds this maximum
 
+numStepsFine_intermediate = numStepsFine;
+                
 for iter = 1:max_iter
     
     % coarse stage
@@ -44,10 +46,17 @@ for iter = 1:max_iter
     omegaList = [omegaList; omega_add];
     gainList  = [gainList; gain_add]; % just a place holder 
     
+    % refine frequencies detected so far
+    [omegaList, gainList, y_r] = refineExisting(y, omegaList,...
+        sampledManifold, numStepsFine_intermediate);
+    
     if min_sep > 0
         % check whether two frequencies have come too close
         [omegaList, change] = pruneExisting(omegaList, min_sep);
         while change
+            % refine existing frequencies to account for change
+            [omegaList, gainList, y_r] = refineExisting(y, omegaList,...
+                sampledManifold, numStepsFine_intermediate);
             % check again whether two frequencies have come too close
             [omegaList, change] = pruneExisting(omegaList, min_sep);
         end
