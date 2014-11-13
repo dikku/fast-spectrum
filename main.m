@@ -3,8 +3,8 @@ wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
 N = 256; % Length of Sinusoid
 DFT = (2*pi/N); % DFT spacing
-M = 96; % Number of compressive measurements
-type = 'cmplx_bernoulli'; % type of measurement matrix
+M = N; % Number of compressive measurements
+type = 'full'; % type of measurement matrix
                % set to type = 'full' and M = N for
                % non-compressive
 
@@ -13,20 +13,21 @@ min_delta_omega = 3*DFT;
 max_delta_omega = Inf;
 
 % Account for phase wrap around effects
-max_delta_omega = min(max_delta_omega, (2*pi - min_delta_omega)/2);
+min_delta_omega = min(min_delta_omega, pi);
+max_delta_omega = min(max_delta_omega, 2*pi - 2*min_delta_omega);
 
 % effective SNR per measurement with compressive 
 % measurements for the K sinusoids in the mixture
 % SNR = 12; 
 K = 5;
-SNR = 39 * ones(1,K);
+SNR = 33 * ones(1,K);
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
 SNR_all_N = SNR + 10*log10(N/M); % actual SNR per measurement
                   
 sigma = 10^(-min(SNR_all_N/20));
 %% Simulation Setup
-NumSims = 1e2;
+NumSims = 1e4;
 
 % definition of sinusoid
 ant_idx = (0:(N-1)).';
