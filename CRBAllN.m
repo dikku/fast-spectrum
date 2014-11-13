@@ -3,6 +3,7 @@ function [CRB_mat, FIM_mat] = CRBAllN(gainList, omegaList, N, sigma)
 
 K = length(gainList);
 ant_idx = 0:(N-1);
+
 sinusoid    = @(omega) exp(1j*ant_idx(:)*omega)/sqrt(N);
 d_sinusoid  = @(omega) 1j*ant_idx(:)...
     .*exp(1j*ant_idx(:)*omega)/sqrt(N);
