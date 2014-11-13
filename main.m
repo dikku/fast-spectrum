@@ -2,18 +2,24 @@
 wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
 N = 256; % Length of Sinusoid
-M = 64; % Number of compressive measurements
+DFT = (2*pi/N); % DFT spacing
+M = 96; % Number of compressive measurements
 type = 'cmplx_bernoulli'; % type of measurement matrix
-                          % set to type = 'full' and M = N for
-                          % non-compressive
+               % set to type = 'full' and M = N for
+               % non-compressive
 
-min_delta_omega = 2*(2*pi/N); % minimum separation between sinusoids
+% minimum separation between sinusoids
+min_delta_omega = 3*DFT; 
+max_delta_omega = Inf;
+
+% Account for phase wrap around effects
+max_delta_omega = min(max_delta_omega, (2*pi - min_delta_omega)/2);
 
 % effective SNR per measurement with compressive 
 % measurements for the K sinusoids in the mixture
 % SNR = 12; 
 K = 5;
-SNR = 27 * ones(1,K);
+SNR = 39 * ones(1,K);
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
 SNR_all_N = SNR + 10*log10(N/M); % actual SNR per measurement
@@ -23,17 +29,18 @@ sigma = 10^(-min(SNR_all_N/20));
 NumSims = 1e4;
 
 % definition of sinusoid
-sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega)/sqrt(N);
-% d_sinusoid  = @(omega) 1j*(0:(N-1))'...
+ant_idx = (0:(N-1)).';
+sinusoid    = @(omega) exp(1j*ant_idx*omega)/sqrt(N);
+% d_sinusoid  = @(omega) 1j*ant_idx...
 %     .*exp(1j*(0:(N-1))'*omega)/sqrt(N);
 
 S = generateMeasMat(N,M,type);
 %% Algorithm parameters
 overSamplingRate = 2; % Detection stage
-numStepsFine     = 12; % Refinement phase
+numStepsFine     = 6; % Refinement phase
 K_est = K; % #sinusoids to look for
 %% Algorithm preprocessing
-sampledManifold = preProcessMeasMat(S, N, overSamplingRate);
+sampledManifold = preProcessMeasMat(S, overSamplingRate);
 %% SIMS 
 omega_true = zeros(NumSims,K);
 omega_est  = zeros(NumSims,K_est);
@@ -47,13 +54,12 @@ parfor sim_count = 1:NumSims
     
     this_gains_true = gains_true(sim_count,:);
     
-    this_omega_true = 2*pi*rand(1,1);
+    this_omega_true = 2*pi*(rand(1,1)-0.5);
     
     while length(this_omega_true) < K
-        temp = 2*pi*rand(1,1);
-        if min(abs(wrap_2pi(this_omega_true-temp))) > min_delta_omega
-            this_omega_true = [this_omega_true temp];
-        end
+        temp = this_omega_true(end) + min_delta_omega +...
+            (max_delta_omega-min_delta_omega)*rand(1);
+        this_omega_true = [this_omega_true wrap_2pi(temp)];
     end
     
     omega_true(sim_count,:) = this_omega_true;
@@ -69,12 +75,12 @@ parfor sim_count = 1:NumSims
     % take compressive measurements
     y = S*y_full;
     
-    [omegaList, gainList, y_r] = estimateSinusoid(y, sampledManifold, K_est,...
-       numStepsFine);
+    [omegaList, gainList, y_r] = estimateSinusoid(y, sampledManifold,...
+        K_est, numStepsFine);
     
     % [omegaList, gainList, y_r] = polishExisting(y, omegaList, S,...
     %     numStepsFine);
-
+    
     residue(sim_count) = y_r'*y_r;
     
     omegaListFull = Inf*ones(K_est,1);
@@ -87,7 +93,10 @@ parfor sim_count = 1:NumSims
     gains_est(sim_count,:) = gainListFull.';
     
 end
-
+% account for antenna indexing changes
+gains_est = gains_est.*...
+        exp(1j*(sampledManifold.ant_idx(1) - ant_idx(1))*omega_est);
+    
 %% COMPUTE ESTIMATION ERRORS AND BENCHMARK AGAINST CRAMER RAO BOUND
 
 omega_est_reordered  = zeros(NumSims,K);
@@ -118,25 +127,24 @@ end
 
 %% Plot results
 
-[f_errors,x_errors] = ecdf(abs(omega_errors(:)).^2);
-[f_crb,x_crb] = ecdf(CRB_omega(:));
+[f_errors,x_errors] = ecdf(abs(omega_errors(:)).^2/DFT^2);
+[f_crb,x_crb] = ecdf(CRB_omega(:)/DFT^2);
 
 f1 = figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
 hold on; semilogy(10*log10(x_crb),1-f_crb,'r');
-semilogy(20*log10(pi/N*[1 1]),[1/NumSims 1],'b');
+semilogy(20*log10(DFT*[1 1]),[1/NumSims 1],'b');
 
-xlabel('Squared frequency estimation error in dB','fontsize',16);
+% xlabel('Squared frequency estimation error in dB (relative to DFT))',...
+%     'fontsize',16);
 ylabel('CCDF','fontsize',16);
 
-legend({'Squared Error','Cramer Rao Bound','\pi/N'},'fontsize',16,'location','southwest');
-title(sprintf('Minimum separation: %.1f times DFT\nEffective per measurement SNR: %s dB',...
-    min_delta_omega/(2*pi/N), sprintf('%.0f ', SNR)));
-% print('-depsc2','-r300','./Results.eps');
+legend({'Squared Error','Cramer Rao Bound','DFT spacing'},...
+    'fontsize',16,'location','southwest');
 
 [f_res,x_res] = ecdf(residue/(M-K_est)/sigma^2);
 % [f_res,x_res] = ecdf(residue/M/sigma^2);
 f2 = figure; semilogy(x_res, 1-f_res);
-xlabel('Residue relative to noise level');
+% xlabel('Residue relative to noise level');
 ylabel('CCDF');
 
 %% DEBUG PLOT: Displays large error scenarios case by case

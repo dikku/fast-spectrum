@@ -10,9 +10,11 @@ function [omegaFine, gainEst, y_r] = refineExisting(y, omegaFine,...
 % Distance between phases and freq
 wrap_2pi = @(x) angle(exp(1j*x));
 
+N = sampledManifold.length;
+DFT = 2*pi/N;
 
-if ~exist('maxjump','var'), maxjump = Inf;
-elseif isempty(maxjump), maxjump = Inf; end
+if ~exist('maxjump','var'), maxjump = DFT/4;
+elseif isempty(maxjump), maxjump = DFT/4; end
 
 K = length(omegaFine);
 delta_bin = 2*pi/length(sampledManifold.coarseOmega);
