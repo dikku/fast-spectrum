@@ -26,7 +26,7 @@ SNR_all_N = SNR + 10*log10(N/M); % actual SNR per measurement
                   
 sigma = 10^(-min(SNR_all_N/20));
 %% Simulation Setup
-NumSims = 1e4;
+NumSims = 1e2;
 
 % definition of sinusoid
 ant_idx = (0:(N-1)).';
@@ -132,7 +132,7 @@ end
 
 f1 = figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
 hold on; semilogy(10*log10(x_crb),1-f_crb,'r');
-semilogy(20*log10(DFT*[1 1]),[1/NumSims 1],'b');
+semilogy(20*log10([1 1]),[1/NumSims 1],'b');
 
 % xlabel('Squared frequency estimation error in dB (relative to DFT))',...
 %     'fontsize',16);
