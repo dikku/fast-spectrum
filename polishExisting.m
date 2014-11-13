@@ -1,5 +1,5 @@
-function [omegaFine, gainEst, y_r] = polishExisting(y, omegaFine, S,...
-    numsteps, maxjump)
+function [omegas, gains, y_r] = polishExisting(y, omegas, S,...
+    Numsteps, maxjump)
 
 % COSTLY REFINEMENT 
 % use x(omega), dx(omega)/domega evaluated at omegaFine 
@@ -7,63 +7,70 @@ function [omegaFine, gainEst, y_r] = polishExisting(y, omegaFine, S,...
 % the detection phase
 % Complexity O(N M K)
 
-if ~exist('maxjump','var'), maxjump = Inf;
-elseif isempty(maxjump), maxjump = Inf; end
-
-if ~exist('numsteps','var'), numsteps = 3;
-elseif isempty(numsteps), numsteps = 3; end
-
 N = size(S,2);
 M = size(S,1);
-K = length(omegaFine);
+K = length(omegas);
+
+DFT = 2*pi/N;
+
+if ~exist('maxjump','var'), maxjump = DFT/4;
+elseif isempty(maxjump), maxjump = DFT/4; end
+
+if ~exist('numsteps','var'), Numsteps = 3;
+elseif isempty(Numsteps), Numsteps = 3; end
+
+
+
+
+ant_idx = (0:(N-1)).' - (N-1)/2;
 
 % definition of sinusoid
-sinusoid    = @(omega) exp(1j*(0:(N-1))'*omega)/sqrt(N);
-d_sinusoid  = @(omega) 1j*(0:(N-1))'...
-    .*exp(1j*(0:(N-1))'*omega)/sqrt(N);
-% d2_sinusoid  = @(omega) -(((0:(N-1))').^2)...
-    % .*exp(1j*(0:(N-1))'*omega)/sqrt(N);
+sinusoid    = @(omega) S * exp(1j*ant_idx*omega)/sqrt(N);
+d_sinusoid  = @(omega) 1j * S * ant_idx...
+    .*exp(1j*ant_idx*omega)/sqrt(N);
+% d2_sinusoid  = @(omega) - S * (ant_idx.^2)...
+    % .*exp(1j*ant_idx*omega)/sqrt(N);
 
 
-omegaFine = omegaFine(:);
+omegas = omegas(:);
 
-S_IFFT      = zeros(M,K);
-DER_S_IFFT  = zeros(M,K);
-% DER2_S_IFFT = zeros(M,K);
+x_theta      = zeros(M,K);
+dx_theta  = zeros(M,K);
+% d2x_theta = zeros(M,K);
 
 for count = 1:K
-    S_IFFT(:,count)      = S * sinusoid(omegaFine(count));
-    DER_S_IFFT(:,count)  = S * d_sinusoid(omegaFine(count));
-    % DER2_S_IFFT(:,count) = S * d2_sinusoid(omegaFine(count));
+    x_theta(:,count)   = sinusoid(omegas(count));
+    dx_theta(:,count)  = d_sinusoid(omegas(count));
+    % d2x_theta(:,count) = d2_sinusoid(omegas(count));
 end
 
-for step_count = 1:numsteps
+for step_count = 1:Numsteps
     
-    gainEst = (S_IFFT'*S_IFFT)\(S_IFFT'*y);
-    y_r = y - S_IFFT*gainEst;
+    gains = (x_theta'*x_theta)\(x_theta'*y);
+    y_r = y - x_theta*gains;
     
-    DER_S_IFFT_times_gain  = DER_S_IFFT*diag(gainEst);
-    % DER2_S_IFFT_times_gain = DER2_S_IFFT*diag(gainEst);
+    x_theta_times_gain  = dx_theta*diag(gains);
+    % d2x_theta_times_gain = d2x_theta*diag(gains);
     
-    omega_jump = real(DER_S_IFFT_times_gain'*DER_S_IFFT_times_gain)\...
-        real(DER_S_IFFT_times_gain'*y_r);
+    omega_jump = real(x_theta_times_gain'*x_theta_times_gain)\...
+        real(x_theta_times_gain'*y_r);
     
     % Newton step
-    % omega_jump = real(DER_S_IFFT_times_gain'*DER_S_IFFT_times_gain -...
-        % diag(DER2_S_IFFT_times_gain'*y_r))\real(DER_S_IFFT_times_gain'*y_r);
+    % omega_jump = real(x_theta_times_gain'*x_theta_times_gain -...
+    %     diag(d2x_theta_times_gain'*y_r))\real(x_theta_times_gain'*y_r);
     
     omegaDelta = max(min(omega_jump, maxjump),-maxjump);
-    omegaFine = omegaFine + omegaDelta;
+    omegas = omegas + omegaDelta;
     
     for count = 1:K
-        S_IFFT(:,count)     = S * sinusoid(omegaFine(count));
-        if step_count ~= numsteps
-            DER_S_IFFT(:,count)  = S * d_sinusoid(omegaFine(count));
-            % DER2_S_IFFT(:,count) = S * d2_sinusoid(omegaFine(count));
+        x_theta(:,count)       = sinusoid(omegas(count));
+        if step_count ~= Numsteps
+            dx_theta(:,count)  = d_sinusoid(omegas(count));
+            % d2x_theta(:,count) = d2_sinusoid(omegas(count));
         end
     end
     
 end
 
-gainEst = (S_IFFT'*S_IFFT)\(S_IFFT'*y);
-y_r = y - S_IFFT*gainEst;
+gains = (x_theta'*x_theta)\(x_theta'*y);
+y_r = y - x_theta*gains;
