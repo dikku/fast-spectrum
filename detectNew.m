@@ -30,6 +30,8 @@ else
 end
 
 omega = sampledManifold.coarseOmega(which_bin);
+
+% COARSE GAIN AND CORRESPONDING RESIDUE (WE DO NOT USE THESE)
 % gain  = possible_gains(which_bin);
 % 
 % % compute new residue
@@ -39,7 +41,9 @@ omega = sampledManifold.coarseOmega(which_bin);
 %     y_r = y_r - gain*sampledManifold.map_IfftMat(:,which_bin);
 % end
 
-% refine the detected coarse frequency to prevent "leakage"
+
+% REFINE THE NEWLY DETECTED COARSE FREQ TO PREVENT "LEAKAGE"
+% AND COMPUTE THE CORRESPONDING GAINS AND RESIDUE
 [omega, gain, y_r] = refine_new_freq(y_r, omega, sampledManifold);
 
 end
@@ -69,7 +73,8 @@ else
 end
 
 
-% % NON-COHERENT
+% % NON-COHERENT METRIC 
+% % (USED IN COARSE STAGE AS WELL)
 % want derivatives of abs(x_theta'*y)^2/energy
 % r = log(energy);
 if sampledManifold.is_eye
@@ -91,19 +96,15 @@ else
         (d_g + g*d_r/4)*d_r - g*d2_r/2;
 end
 
-% f = abs(g)^2;
+% NON-COHERENT METRIC IS: maximize f = abs(g)^2;
 d_f = 2*real(g'*d_g);
 d2_f = 2*real(g'*d2_g) + 2*abs(d_g)^2;
 
-der1 = - d_f;
-der2 = - d2_f;
-
-
-if der2 > 0
-    omega_next = omega - der1/der2;
+if d2_f < 0
+    omega_next = omega - d_f/d2_f;
 else
-    DFT = 2*pi/sampledManifold.length;
-    omega_next = omega - max(min(der1, DFT/4),-DFT/4);
+    delta_bin = 2*pi/length(sampledManifold.coarseOmega);
+    omega_next = omega + max(min(d_f, delta_bin/4),-delta_bin/4);
 end
 
 omega = omega_next;

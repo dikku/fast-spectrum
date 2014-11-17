@@ -3,8 +3,8 @@ wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
 N = 256; % Length of Sinusoid
 DFT = (2*pi/N); % DFT spacing
-M = round(N/3); % Number of compressive measurements
-type = 'cmplx_bernoulli'; % type of measurement matrix
+M = round(N); % Number of compressive measurements
+type = 'full'; % type of measurement matrix
                % set to type = 'full' and M = N for
                % non-compressive
 
@@ -37,7 +37,7 @@ sinusoid    = @(omega) exp(1j*ant_idx*omega)/sqrt(N);
 
 S = generateMeasMat(N,M,type);
 %% Algorithm parameters
-overSamplingRate = 2; % Detection stage
+overSamplingRate = 3; % Detection stage
 numStepsFine     = 6; % Refinement phase
 K_est = K; % #sinusoids to look for
 %% Algorithm preprocessing
@@ -135,17 +135,17 @@ end
 %% Plot results
 
 [f,x] = ecdf((residue_truth-residue)/sigma^2);
-semilogy(x,f);
+f1 = figure;  semilogy(x,f);
 xlabel('Log likelihood relative to truth');
 ylabel('CDF','fontsize',16);
 
 [f_errors,x_errors] = ecdf(abs(omega_errors(:)).^2/DFT^2);
 [f_crb,x_crb] = ecdf(CRB_omega(:)/DFT^2);
-f1 = figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
+f2 = figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
 hold on; semilogy(10*log10(x_crb),1-f_crb,'r');
 semilogy(20*log10([1 1]),[1/NumSims 1],'b');
-% xlabel('Squared frequency estimation error in dB (relative to DFT))',...
-%     'fontsize',16);
+xlabel('Squared frequency estimation error in dB (relative to DFT))',...
+    'fontsize',16);
 ylabel('CCDF','fontsize',16);
 legend({'Squared Error','Cramer Rao Bound','DFT spacing'},...
     'fontsize',16,'location','southwest');
