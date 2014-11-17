@@ -44,20 +44,10 @@ sampledManifold = preProcessMeasMat(S, N);
 (i) Estimation / Cold start O(N M K)
 ------------------------------------
 
-MIN_SEP = minimum separation between sinusoids 
-		  as the algorithm progresses (e.g., 1.5*2*pi/N). 
-
-% We merge two sinusoids closer than MIN_SEP in 
-% frequency into a single sinusoid
-% MIN_SEP Should be smaller than the frequency separation 
-% among frequencies in the "truth" 
-
-
-
 % arrive at estimates from the measurements y and the sampled 
 % version of the manifold in sampleManifold
 
-[omegaEst, gainEst] = estimateSinusoid(y, sampledManifold, K, [], MIN_SEP);
+[omegaEst, gainEst] = estimateSinusoid(y, sampledManifold, K);
 
 (ii) Tracking / Warm start O(M K^2) 
 -----------------------------------
