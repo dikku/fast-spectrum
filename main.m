@@ -3,8 +3,8 @@ wrap_2pi = @(x) angle(exp(1j*x));
 %% Define Scenario
 N = 256; % Length of Sinusoid
 DFT = (2*pi/N); % DFT spacing
-M = N; % Number of compressive measurements
-type = 'full'; % type of measurement matrix
+M = round(N/3); % Number of compressive measurements
+type = 'cmplx_bernoulli'; % type of measurement matrix
                % set to type = 'full' and M = N for
                % non-compressive
 
@@ -20,7 +20,7 @@ max_delta_omega = min(max_delta_omega, 2*pi - 2*min_delta_omega);
 % measurements for the K sinusoids in the mixture
 % SNR = 12; 
 K = 5;
-SNR = 33 * ones(1,K);
+SNR = 40 * ones(1,K);
 
 K = length(SNR); % # sinusoids in the mixture of sinusoids
 SNR_all_N = SNR + 10*log10(N/M); % actual SNR per measurement
@@ -46,6 +46,7 @@ sampledManifold = preProcessMeasMat(S, overSamplingRate);
 omega_true = zeros(NumSims,K);
 omega_est  = zeros(NumSims,K_est);
 residue = zeros(NumSims,1);
+residue_truth = zeros(NumSims,1);
 
 gains_true = sigma*sign(randn(NumSims,K) + 1j*randn(NumSims,K))*...
     diag(10.^(SNR_all_N/20));
@@ -66,15 +67,16 @@ parfor sim_count = 1:NumSims
     omega_true(sim_count,:) = this_omega_true;
     
     % add measurement noise
-    y_full = sigma*(randn(N,1) + 1j*randn(N,1))/sqrt(2);
+    noise = sigma*(randn(N,1) + 1j*randn(N,1))/sqrt(2);
+    y_noiseless = zeros(N,1);
     % add signal
     for count = 1:K 
-        y_full = y_full +...
+        y_noiseless = y_noiseless +...
             this_gains_true(count)*sinusoid(this_omega_true(count));
     end
     
     % take compressive measurements
-    y = S*y_full;
+    y = S*(y_noiseless + noise);
     
     [omegaList, gainList, y_r] = estimateSinusoid(y, sampledManifold,...
         K_est, numStepsFine);
@@ -83,6 +85,9 @@ parfor sim_count = 1:NumSims
     %     numStepsFine);
     
     residue(sim_count) = y_r'*y_r;
+    % residue corresponding to the correct value y_noiseless
+    residue_truth(sim_count) = norm(S*noise)^2; 
+    
     
     omegaListFull = Inf*ones(K_est,1);
     omegaListFull(1:length(omegaList)) = omegaList(:);
@@ -97,8 +102,9 @@ end
 % account for antenna indexing changes
 gains_est = gains_est.*...
         exp(1j*(sampledManifold.ant_idx(1) - ant_idx(1))*omega_est);
-    
+support_size = K_est - sum(isinf(omega_est),2);    
 %% COMPUTE ESTIMATION ERRORS AND BENCHMARK AGAINST CRAMER RAO BOUND
+
 
 omega_est_reordered  = zeros(NumSims,K);
 omega_errors = zeros(NumSims,K);
@@ -128,25 +134,22 @@ end
 
 %% Plot results
 
+[f,x] = ecdf((residue_truth-residue)/sigma^2);
+semilogy(x,f);
+xlabel('Log likelihood relative to truth');
+ylabel('CDF','fontsize',16);
+
 [f_errors,x_errors] = ecdf(abs(omega_errors(:)).^2/DFT^2);
 [f_crb,x_crb] = ecdf(CRB_omega(:)/DFT^2);
-
 f1 = figure;  semilogy(10*log10(x_errors),1-f_errors,'k');
 hold on; semilogy(10*log10(x_crb),1-f_crb,'r');
 semilogy(20*log10([1 1]),[1/NumSims 1],'b');
-
 % xlabel('Squared frequency estimation error in dB (relative to DFT))',...
 %     'fontsize',16);
 ylabel('CCDF','fontsize',16);
-
 legend({'Squared Error','Cramer Rao Bound','DFT spacing'},...
     'fontsize',16,'location','southwest');
 
-[f_res,x_res] = ecdf(residue/(M-K_est)/sigma^2);
-% [f_res,x_res] = ecdf(residue/M/sigma^2);
-f2 = figure; semilogy(x_res, 1-f_res);
-% xlabel('Residue relative to noise level');
-ylabel('CCDF');
 
 %% DEBUG PLOT: Displays large error scenarios case by case
 

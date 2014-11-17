@@ -21,12 +21,12 @@ K = length(omegas);
 if sampledManifold.is_eye
     ant_idx = sampledManifold.ant_idx(:);
     Ant_idx = sparse(1:N, 1:N, ant_idx);
-    % Ant_idx2 = sparse(1:N, 1:N, ant_idx.^2);
+    Ant_idx2 = sparse(1:N, 1:N, ant_idx.^2);
     x_theta  = exp(1j*ant_idx*omegas.')/sqrt(N);
     dx_theta = 1j*Ant_idx...
         *exp(1j*ant_idx*omegas.')/sqrt(N);
-    % d2x_theta = -Ant_idx2...
-    %     *exp(1j*ant_idx*omegas.')/sqrt(N);
+    d2x_theta = -Ant_idx2...
+        *exp(1j*ant_idx*omegas.')/sqrt(N);
     
 else
     delta_bin = 2*pi/length(sampledManifold.coarseOmega);
@@ -37,12 +37,12 @@ else
     % find the nearest coarse estimate
     coarse_S_IFFT = sampledManifold.map_IfftMat(:,BIN_IDX);
     coarse_DER_S_IFFT = sampledManifold.map_dIfftMat(:,BIN_IDX);
-    % d2x_theta = sampledManifold.map_d2IfftMat(:,BIN_IDX);
+    d2x_theta = sampledManifold.map_d2IfftMat(:,BIN_IDX);
     % linearized version of the sinusoidal manifold around
     % the coarse estimate
     % tangent plane
     x_theta = coarse_S_IFFT + coarse_DER_S_IFFT*diag(omegaDelta);
-    dx_theta = coarse_DER_S_IFFT;%  + d2x_theta*diag(omegaDelta);
+    dx_theta = coarse_DER_S_IFFT  + d2x_theta*diag(omegaDelta);
 end
 
 gains = (x_theta'*x_theta)\(x_theta'*y);
@@ -69,8 +69,8 @@ for iii=1:NumFine
         x_theta  = exp(1j*ant_idx*omegas.')/sqrt(N);
         dx_theta = 1j*Ant_idx...
             *exp(1j*ant_idx*omegas.')/sqrt(N);
-        % d2x_theta = -Ant_idx2...
-        %     *exp(1j*ant_idx*omegas.')/sqrt(N);
+        d2x_theta = -Ant_idx2...
+            *exp(1j*ant_idx*omegas.')/sqrt(N);
     else
         omegaDelta = wrap_2pi(omegas - omegaCoarse);
         change_pivots = any(abs(omegaDelta) > (delta_bin/2));
@@ -83,11 +83,11 @@ for iii=1:NumFine
             
             coarse_S_IFFT = sampledManifold.map_IfftMat(:,BIN_IDX);
             coarse_DER_S_IFFT = sampledManifold.map_dIfftMat(:,BIN_IDX);
-            % d2x_theta = sampledManifold.map_d2IfftMat(:,BIN_IDX);
+            d2x_theta = sampledManifold.map_d2IfftMat(:,BIN_IDX);
         end
         % new template, corresponding gains and residues
         x_theta = coarse_S_IFFT + coarse_DER_S_IFFT*diag(omegaDelta);
-        dx_theta = coarse_DER_S_IFFT;%  + d2x_theta*diag(omegaDelta);
+        dx_theta = coarse_DER_S_IFFT  + d2x_theta*diag(omegaDelta);
     end
     
     gains = (x_theta'*x_theta)\(x_theta'*y);

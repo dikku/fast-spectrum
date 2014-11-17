@@ -11,8 +11,7 @@ R = round(overSamplingRate*N);
 
 % good choice of initial phase for linearization (needed to reduce
 % overSamplingRate
-ant_idx = 0:(N-1);
-ant_idx = ant_idx - (N-1)/2; 
+ant_idx = (0:(N-1)) - (N-1)/2; 
 
 if M == N
     sampledManifold.is_eye = norm(eye(N) - S,'fro') == 0;
@@ -81,11 +80,10 @@ if ~sampledManifold.is_eye
         diag(exp(1j*sampledManifold.coarseOmega*ant_idx(1)));
     % S times dx(omegaCoarse)/d omega (1st der)
     
-    % % needed when we use block-Newton updates
-    % sampledManifold.map_d2IfftMat = R/sqrt(N)*...
-    %     ifft(S*sparse(1:N,1:N,-ant_idx.^2),R,2)*...
-    %     diag(exp(1j*sampledManifold.coarseOmega*ant_idx(1)));
-    % % S times d^2x(omegaCoarse)/d omega^2 (2nd der)
+    sampledManifold.map_d2IfftMat = R/sqrt(N)*...
+        ifft(S*sparse(1:N,1:N,-ant_idx.^2),R,2)*...
+        diag(exp(1j*sampledManifold.coarseOmega*ant_idx(1)));
+    % S times d^2x(omegaCoarse)/d omega^2 (2nd der)
 
 end
 end
