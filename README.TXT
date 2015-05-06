@@ -1,5 +1,9 @@
 An efficient sequential algorithm to accurately estimate *continuous* frequencies/tones present in a *mixture* of sinusoids
 
+When the number of sinusoids in the mixture K is not known, a similar algorithm is available at:
+
+https://bitbucket.org/wcslspectralestimation/continuous-frequency-estimation
+
 
 Complexity 
 ==========
